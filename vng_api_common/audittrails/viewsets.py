@@ -23,7 +23,7 @@ class AuditTrailMixin:
             return data[self.audittrail_main_resource_key]
         return data[main_resource]
 
-    def create_audittrail(self, status_code, action, version_before_edit, version_after_edit):
+    def create_audittrail(self, status_code, action, version_before_edit, version_after_edit, unique_representation):
         """
         Create the audittrail for the action that has been carried out.
         """
@@ -66,6 +66,7 @@ class AuditTrailMixin:
             hoofd_object=main_object,
             resource=self.basename,
             resource_url=data['url'],
+            resource_weergave=unique_representation,
             oud=version_before_edit,
             nieuw=version_after_edit,
         )
@@ -75,11 +76,13 @@ class AuditTrailMixin:
 class AuditTrailCreateMixin(AuditTrailMixin):
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
+        instance = self.queryset.order_by('-id')[0]
         self.create_audittrail(
             response.status_code,
             CommonResourceAction.create,
             version_before_edit=None,
             version_after_edit=response.data,
+            unique_representation=instance.unique_representation()
         )
         return response
 
@@ -99,6 +102,7 @@ class AuditTrailUpdateMixin(AuditTrailMixin):
             action,
             version_before_edit=version_before_edit,
             version_after_edit=response.data,
+            unique_representation=instance.unique_representation()
         )
         return response
 
@@ -123,7 +127,8 @@ class AuditTrailDestroyMixin(AuditTrailMixin):
                 response.status_code,
                 CommonResourceAction.destroy,
                 version_before_edit=version_before_edit,
-                version_after_edit=None
+                version_after_edit=None,
+                unique_representation=instance.unique_representation()
             )
             return response
 
